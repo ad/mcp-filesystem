@@ -146,7 +146,7 @@ func makeHandleSearchFiles(allowedDirs []string) func(context.Context, mcp.CallT
 			log.Printf("[MCP][ERROR] search_files: %v", err)
 			return nil, err
 		}
-		return wrapResult(res), nil
+		return wrapResults(res), nil
 	}
 }
 
@@ -250,6 +250,30 @@ func wrapResult(res tools.ToolResult) *mcp.CallToolResult {
 			},
 		},
 	}
+}
+
+// wrapResults — оборачивает []ToolResult в MCP CallToolResult
+func wrapResults(res []tools.ToolResult) *mcp.CallToolResult {
+	var out []mcp.Content
+
+	for _, v := range res {
+		b, _ := json.Marshal(v)
+		if len(b) == 0 {
+			continue
+		}
+
+		var content map[string]string
+		if err := json.Unmarshal(b, &content); err != nil {
+			log.Printf("[MCP][ERROR] wrapResults: %v", err)
+			continue
+		}
+		out = append(out, mcp.TextContent{
+			Type: content["type"],
+			Text: content["text"],
+		})
+	}
+
+	return &mcp.CallToolResult{Content: out}
 }
 
 func main() {

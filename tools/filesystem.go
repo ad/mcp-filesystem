@@ -185,7 +185,7 @@ type SearchFilesParams struct {
 	ExcludePatterns []string `json:"excludePatterns"`
 }
 
-func SearchFiles(params SearchFilesParams, allowedDirs []string) (ToolResult, error) {
+func SearchFiles(params SearchFilesParams, allowedDirs []string) ([]ToolResult, error) {
 	startDir, err := findAllowedRoot(allowedDirs, params.Path)
 	if err != nil {
 		return nil, err
@@ -225,7 +225,15 @@ func SearchFiles(params SearchFilesParams, allowedDirs []string) (ToolResult, er
 	if err != nil {
 		return nil, err
 	}
-	return ToolResult{"matches": matches}, nil
+	var content []ToolResult
+	if len(matches) > 0 {
+		for _, m := range matches {
+			content = append(content, ToolResult{"type": "text", "text": m})
+		}
+	} else {
+		content = append(content, ToolResult{"type": "json", "text": "No matches found"})
+	}
+	return content, nil
 }
 
 type ReadMultipleFilesParams struct {
