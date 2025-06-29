@@ -1,0 +1,11 @@
+defaultBaseImage: cgr.dev/chainguard/static
+defaultPlatforms:
+- linux/arm64
+- linux/amd64
+builds:
+- id: app
+  main: .
+  ldflags:
+  - "-s"
+  - "-w"
+  - "-X main.version={{.Env.BUILD_VERSION}}"
