@@ -172,6 +172,9 @@ func DeleteFile(params DeleteFileParams, allowedDirs []string) (ToolResult, erro
 	if err != nil {
 		return nil, err
 	}
+	if _, statErr := os.Stat(absPath); os.IsNotExist(statErr) {
+		return nil, errors.New("file does not exist")
+	}
 	err = os.RemoveAll(absPath)
 	if err != nil {
 		return nil, err
@@ -185,16 +188,16 @@ type SearchFilesParams struct {
 	ExcludePatterns []string `json:"excludePatterns"`
 }
 
-func SearchFiles(params SearchFilesParams, allowedDirs []string) ([]ToolResult, error) {
+func SearchFiles(params SearchFilesParams, allowedDirs []string) (ToolResult, error) {
 	startDir, err := findAllowedRoot(allowedDirs, params.Path)
 	if err != nil {
-		return nil, err
+		return ToolResult{"content": []map[string]interface{}{{"type": "text", "text": "Error: " + err.Error()}}, "isError": true}, nil
 	}
 	var matches []string
 	excludes := params.ExcludePatterns
-	isExcluded := func(name string) bool {
+	isExcluded := func(rel string) bool {
 		for _, ex := range excludes {
-			if ok, _ := filepath.Match(ex, name); ok {
+			if ok, _ := filepath.Match(ex, rel); ok {
 				return true
 			}
 		}
@@ -204,7 +207,6 @@ func SearchFiles(params SearchFilesParams, allowedDirs []string) ([]ToolResult, 
 		if err != nil {
 			return nil // пропускаем ошибки доступа
 		}
-		// Проверяем, что path внутри allowedDirs
 		allowed := false
 		for _, root := range allowedDirs {
 			if strings.HasPrefix(path, filepath.Clean(root)) {
@@ -217,23 +219,21 @@ func SearchFiles(params SearchFilesParams, allowedDirs []string) ([]ToolResult, 
 		}
 		rel, _ := filepath.Rel(startDir, path)
 		matched, _ := filepath.Match(params.Pattern, d.Name())
-		if matched && !isExcluded(d.Name()) {
+		if matched && !isExcluded(rel) {
 			matches = append(matches, rel)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return ToolResult{"content": []map[string]interface{}{{"type": "text", "text": "Error: " + err.Error()}}, "isError": true}, nil
 	}
-	var content []ToolResult
+	var text string
 	if len(matches) > 0 {
-		for _, m := range matches {
-			content = append(content, ToolResult{"type": "text", "text": m})
-		}
+		text = strings.Join(matches, "\n")
 	} else {
-		content = append(content, ToolResult{"type": "json", "text": "No matches found"})
+		text = "No matches found"
 	}
-	return content, nil
+	return ToolResult{"content": []map[string]interface{}{{"type": "text", "text": text}}}, nil
 }
 
 type ReadMultipleFilesParams struct {
@@ -241,21 +241,22 @@ type ReadMultipleFilesParams struct {
 }
 
 func ReadMultipleFiles(params ReadMultipleFilesParams, allowedDirs []string) (ToolResult, error) {
-	results := make(map[string]interface{})
+	var results []string
 	for _, p := range params.Paths {
 		absPath, err := findAllowedRoot(allowedDirs, p)
 		if err != nil {
-			results[p] = map[string]interface{}{"error": err.Error()}
+			results = append(results, p+": Error - "+err.Error())
 			continue
 		}
 		data, err := os.ReadFile(absPath)
 		if err != nil {
-			results[p] = map[string]interface{}{"error": err.Error()}
+			results = append(results, p+": Error - "+err.Error())
 			continue
 		}
-		results[p] = string(data)
+		results = append(results, p+":\n"+string(data))
 	}
-	return ToolResult{"results": results}, nil
+	joined := strings.Join(results, "\n---\n")
+	return ToolResult{"content": []map[string]interface{}{{"type": "text", "text": joined}}}, nil
 }
 
 func ListAllowedDirectories(allowedDirs []string) (ToolResult, error) {

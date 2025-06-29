@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/ad/mcp-filesystem/tools"
@@ -72,13 +73,23 @@ func TestMoveFile(t *testing.T) {
 
 func TestDeleteFile(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(dir+"/del.txt", []byte("x"), 0644)
-	_, err := tools.DeleteFile(tools.DeleteFileParams{Path: "del.txt"}, []string{dir})
+	filePath := dir + "/del.txt"
+	err := os.WriteFile(filePath, []byte("x"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create file for deletion: %v", err)
+	}
+	_, err = tools.DeleteFile(tools.DeleteFileParams{Path: "del.txt"}, []string{dir})
 	if err != nil {
 		t.Fatalf("DeleteFile error: %v", err)
 	}
-	if _, err := os.Stat(dir + "/del.txt"); err == nil {
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		t.Error("File not deleted")
+	}
+
+	// Try deleting a non-existent file, should not panic, but should return error
+	_, err = tools.DeleteFile(tools.DeleteFileParams{Path: "doesnotexist.txt"}, []string{dir})
+	if err == nil {
+		t.Error("Expected error when deleting non-existent file")
 	}
 }
 
@@ -86,13 +97,57 @@ func TestSearchFiles(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(dir+"/a.go", []byte("x"), 0644)
 	os.WriteFile(dir+"/b.txt", []byte("y"), 0644)
+	os.Mkdir(dir+"/subdir", 0755)
+	os.WriteFile(dir+"/subdir/c.go", []byte("z"), 0644)
+
+	// Basic pattern
 	res, err := tools.SearchFiles(tools.SearchFilesParams{Path: ".", Pattern: "*.go", ExcludePatterns: nil}, []string{dir})
 	if err != nil {
 		t.Fatalf("SearchFiles error: %v", err)
 	}
-	matches := res["matches"].([]string)
-	if len(matches) == 0 {
-		t.Error("SearchFiles: no matches")
+	content := res["content"].([]map[string]interface{})
+	text := content[0]["text"].(string)
+	if !strings.Contains(text, "a.go") {
+		t.Error("SearchFiles: a.go not found")
+	}
+	if !strings.Contains(text, "subdir/c.go") {
+		t.Error("SearchFiles: subdir/c.go not found")
+	}
+
+	// Exclude pattern
+	res, err = tools.SearchFiles(tools.SearchFilesParams{Path: ".", Pattern: "*.go", ExcludePatterns: []string{"subdir/*"}}, []string{dir})
+	if err != nil {
+		t.Fatalf("SearchFiles with exclude error: %v", err)
+	}
+	content = res["content"].([]map[string]interface{})
+	text = content[0]["text"].(string)
+	if strings.Contains(text, "subdir/c.go") {
+		t.Error("SearchFiles: excludePatterns did not exclude subdir/c.go")
+	}
+
+	// No matches
+	res, err = tools.SearchFiles(tools.SearchFilesParams{Path: ".", Pattern: "*.md", ExcludePatterns: nil}, []string{dir})
+	if err != nil {
+		t.Fatalf("SearchFiles error: %v", err)
+	}
+	content = res["content"].([]map[string]interface{})
+	text = content[0]["text"].(string)
+	if text != "No matches found" {
+		t.Error("SearchFiles: expected no matches for *.md")
+	}
+
+	// Ошибка доступа
+	res, err = tools.SearchFiles(tools.SearchFilesParams{Path: "/root", Pattern: "*.go", ExcludePatterns: nil}, []string{dir})
+	if err != nil {
+		t.Fatalf("SearchFiles error: %v", err)
+	}
+	if isErr, ok := res["isError"].(bool); !ok || !isErr {
+		t.Error("SearchFiles: expected isError true for forbidden path")
+	}
+	content = res["content"].([]map[string]interface{})
+	text = content[0]["text"].(string)
+	if !strings.Contains(text, "Error:") {
+		t.Error("SearchFiles: expected error text for forbidden path")
 	}
 }
 
@@ -104,12 +159,24 @@ func TestReadMultipleFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadMultipleFiles error: %v", err)
 	}
-	results := res["results"].(map[string]interface{})
-	if results["a.txt"].(string) != "A" || results["b.txt"].(string) != "B" {
+	content := res["content"].([]map[string]interface{})
+	text := content[0]["text"].(string)
+	if !strings.Contains(text, "a.txt:\nA") || !strings.Contains(text, "b.txt:\nB") {
 		t.Error("ReadMultipleFiles: wrong content")
 	}
-	if _, ok := results["no.txt"].(map[string]interface{}); !ok {
+	if !strings.Contains(text, "no.txt: Error") {
 		t.Error("ReadMultipleFiles: missing error for no.txt")
+	}
+
+	// Test with empty paths
+	res, err = tools.ReadMultipleFiles(tools.ReadMultipleFilesParams{Paths: []string{}}, []string{dir})
+	if err != nil {
+		t.Fatalf("ReadMultipleFiles error on empty paths: %v", err)
+	}
+	content = res["content"].([]map[string]interface{})
+	text = content[0]["text"].(string)
+	if len(strings.TrimSpace(text)) != 0 {
+		t.Error("ReadMultipleFiles: expected empty results for empty paths")
 	}
 }
 

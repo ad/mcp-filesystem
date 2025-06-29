@@ -224,7 +224,7 @@ fetch('http://localhost:8080/mcp', {
 - **Input:** `{}`
 - **Output:** `{ "directories": ["/your/workdir"] }`
 
-### edit_file (WIP)
+### edit_file
 - **Input:** `{ "path": "file.txt", "edits": [ { "oldText": "foo", "newText": "bar" } ], "dryRun": true }`
 - **Output:** `{ "error": "not implemented yet" }`
 
