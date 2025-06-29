@@ -136,7 +136,6 @@ func TestSearchFiles(t *testing.T) {
 		t.Error("SearchFiles: expected no matches for *.md")
 	}
 
-	// Ошибка доступа
 	res, err = tools.SearchFiles(tools.SearchFilesParams{Path: "/root", Pattern: "*.go", ExcludePatterns: nil}, []string{dir})
 	if err != nil {
 		t.Fatalf("SearchFiles error: %v", err)

@@ -230,7 +230,6 @@ func makeHandleDirectoryTree(allowedDirs []string) func(context.Context, mcp.Cal
 	}
 }
 
-// decodeParams — универсальный декодер параметров MCP tool
 func decodeParams(args interface{}, out interface{}) error {
 	b, err := json.Marshal(args)
 	if err != nil {
@@ -239,9 +238,7 @@ func decodeParams(args interface{}, out interface{}) error {
 	return json.Unmarshal(b, out)
 }
 
-// wrapResult — оборачивает ToolResult в MCP CallToolResult
 func wrapResult(res tools.ToolResult) *mcp.CallToolResult {
-	// Если есть ключ isError, выставляем его явно
 	isError := false
 	if v, ok := res["isError"]; ok {
 		if b, ok := v.(bool); ok && b {
@@ -278,7 +275,6 @@ func main() {
 		server.WithLogging(),
 	)
 
-	// Регистрация MCP tools (файловая система) с поддержкой allowedDirs
 	mcpServer.AddTool(
 		mcp.NewTool("list_directory",
 			mcp.WithDescription("Get a detailed listing of all files and directories in a specified path. "+

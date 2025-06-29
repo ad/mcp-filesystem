@@ -1,73 +1,74 @@
 # mcp-filesystem
 
-**Go-реализация MCP server filesystem** — быстрый, безопасный и полностью совместимый сервер для Model Context Protocol (MCP), реализующий все файловые инструменты MCP с поддержкой STDIO, HTTP и SSE транспортов.
+> **Note:** This is a Go port of the official [TypeScript version](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem) of the MCP filesystem server.
+
+**Go implementation of MCP server filesystem** — fast, secure, and fully compatible server for the Model Context Protocol (MCP), implementing all MCP file tools with support for STDIO, HTTP, and SSE transports.
 
 ---
 
-## 📑 Оглавление
-- [Возможности](#возможности)
-- [Быстрый старт](#быстрый-старт)
-- [Режимы работы и архитектура](#режимы-работы-и-архитектура)
-- [Интеграция](#интеграция)
+## 📑 Table of Contents
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Modes and Architecture](#modes-and-architecture)
+- [Integration](#integration)
 - [API Reference (MCP Tools)](#api-reference-mcp-tools)
-- [Тестирование и автоматизация](#тестирование-и-автоматизация)
-- [Структура проекта](#структура-проекта)
-- [Лицензия](#лицензия)
+- [Testing and Automation](#testing-and-automation)
+- [Project Structure](#project-structure)
+- [License](#license)
 
 ---
 
-## 🚀 Возможности
-- **Полный набор MCP tools**: list_directory, read_file, write_file, create_directory, get_file_info, move_file, delete_file, search_files, read_multiple_files, list_allowed_directories, edit_file (WIP), list_directory_with_sizes, directory_tree
-- **Три транспорта**: STDIO (MCP), HTTP (REST), SSE (Server-Sent Events)
-- **Многопоточность**: параллельное обслуживание клиентов (goroutines)
-- **Ограничение доступа**: работа только в разрешённых директориях
-- **Только стандартная библиотека Go**
-- **MIT лицензия**
-- **Поддержка Linux и macOS**
-- **Логирование только в stderr**
+## 🚀 Features
+- **Full set of MCP tools**: list_directory, read_file, write_file, create_directory, get_file_info, move_file, delete_file, search_files, read_multiple_files, list_allowed_directories, edit_file (WIP), list_directory_with_sizes, directory_tree
+- **Three transports**: STDIO (MCP), HTTP (REST), SSE (Server-Sent Events)
+- **Concurrency**: parallel client handling (goroutines)
+- **Access restriction**: works only in allowed directories
+- **MIT license**
+- **Linux and macOS support**
+- **Logging to stderr only**
 
 ---
 
-## ⚡ Быстрый старт
+## ⚡ Quick Start
 
-### Установка через go install
+### Install via go install
 
-Для быстрой установки последней версии из репозитория используйте:
+To quickly install the latest version from the repository:
 
 ```fish
 go install github.com/ad/mcp-filesystem@latest
 ```
 
-Бинарный файл появится в `$GOBIN` или `$HOME/go/bin` (убедитесь, что этот путь есть в `$PATH`).
+The binary will appear in `$GOBIN` or `$HOME/go/bin` (make sure this path is in your `$PATH`).
 
-### 1. Сборка из исходников
+### 1. Build from source
 ```fish
-# Клонируйте репозиторий
+# Clone the repository
 git clone https://github.com/ad/mcp-filesystem.git
 cd mcp-filesystem
 
 go mod tidy
-# Локальная сборка
+# Local build
 make build-local
-# Или вручную
+# Or manually
 go build -o mcp-filesystem main.go
-# Docker-сборка
+# Docker build
 make build
 ```
 
-### 2. Запуск
+### 2. Run
 
 #### STDIO (VS Code, Claude Desktop)
 ```fish
 ./mcp-filesystem -transport stdio
-# или
+# or
 make run-stdio
 ```
 
 #### HTTP
 ```fish
 ./mcp-filesystem -transport http -port 8080
-# или
+# or
 make run-local
 ```
 
@@ -79,24 +80,24 @@ make run-local
 #### Docker
 ```fish
 make run
-# или вручную
+# or manually
 docker run --rm -p 8080:8080 danielapatin/mcp-filesystem:latest -transport http -port 8080
 ```
 
 ---
 
-## 🌐 Режимы работы и архитектура
+## 🌐 Modes and Architecture
 
-- **STDIO** — MCP-совместимость (JSON-RPC через stdin/stdout)
+- **STDIO** — MCP compatibility (JSON-RPC via stdin/stdout)
 - **HTTP** — REST API (POST /mcp)
 - **SSE** — Server-Sent Events (POST /sse)
-- **Многопоточность** — каждый клиент обслуживается в отдельной goroutine
-- **Ограничение доступа** — операции только в разрешённых директориях
-- **Логирование** — только stderr, формат как в оригинале
+- **Concurrency** — each client is handled in a separate goroutine
+- **Access restriction** — operations only in allowed directories
+- **Logging** — stderr only, same format as original
 
 ---
 
-## 🔌 Интеграция
+## 🔌 Integration
 
 ### VS Code
 
@@ -261,7 +262,7 @@ fetch('http://localhost:8080/mcp', {
 
 ---
 
-## 🧪 Тестирование и автоматизация
+## 🧪 Testing and Automation
 
 ### Unit-тесты
 ```fish

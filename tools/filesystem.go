@@ -123,7 +123,7 @@ func GetFileInfo(params GetFileInfoParams, allowedDirs []string) (ToolResult, er
 		return nil, err
 	}
 	var creationTime, accessTime string
-	// platform-specific: только для совместимости, на Unix можно получить только modTime
+	// platform-specific: for compatibility only, on Unix you can only get modTime
 	creationTime = info.ModTime().Format("2006-01-02T15:04:05Z07:00")
 	accessTime = info.ModTime().Format("2006-01-02T15:04:05Z07:00")
 	perms := info.Mode().Perm().String()

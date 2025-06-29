@@ -21,34 +21,34 @@ print_warn() {
   echo -e "${YELLOW}! $1${NC}"
 }
 
-print_step "Тестирование MCP Server на Go (все инструменты)..."
+print_step "Testing MCP Server in Go (all tools)..."
 
-# Проверяем наличие собранного сервера
+# Check for built server
 if [ ! -f "./mcp-filesystem" ]; then
-    print_warn "Сервер не найден. Запуск сборки..."
+    print_warn "Server not found. Building..."
     make build-local
 fi
 
-print_step "Запуск unit тестов..."
+print_step "Running unit tests..."
 if go test -v; then
-    print_ok "Unit тесты пройдены."
+    print_ok "Unit tests passed."
 else
-    print_fail "Unit тесты не пройдены!"
+    print_fail "Unit tests failed!"
     exit 1
 fi
 
-# Создаем временную директорию для тестов
+# Create temporary test directory
 TESTDIR="./test_tmp_dir_$$"
 mkdir -p "$TESTDIR"
 cd "$TESTDIR"
 
-print_step "Создание тестовых файлов..."
+print_step "Creating test files..."
 mkdir subdir
 
 echo "hello world" > file1.txt
 echo "foo bar" > subdir/file2.txt
 
-print_step "Генерация MCP-запросов для всех инструментов..."
+print_step "Generating MCP requests for all tools..."
 cat > test_input.jsonrpc << EOF
 {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {"tools": {}}, "clientInfo": {"name": "test-client", "version": "1.0.0"}}}
 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "list_directory", "arguments": {"path": "."}}}
@@ -60,17 +60,17 @@ cat > test_input.jsonrpc << EOF
 {"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {"name": "create_directory", "arguments": {"path": "newdir"}}}
 {"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "move_file", "arguments": {"source": "file3.txt", "destination": "newdir/file3moved.txt"}}}
 {"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "delete_file", "arguments": {"path": "newdir/file3moved.txt"}}}
-# Ошибочный кейс: чтение несуществующего файла
+# Error case: reading a non-existent file
 {"jsonrpc": "2.0", "id": 11, "method": "tools/call", "params": {"name": "read_file", "arguments": {"path": "no_such_file.txt"}}}
 EOF
 
-print_step "Запуск сервера с тестовыми MCP данными..."
+print_step "Running server with test MCP data..."
 
 cat test_input.jsonrpc | ../mcp-filesystem -transport stdio "$PWD" | tee test_output.log
 
-print_step "Проверка результатов..."
+print_step "Checking results..."
 
-# Проверяем успешные ответы
+# Check for successful responses
 check_ok() {
   local id="$1"
   local desc="$2"
@@ -80,14 +80,14 @@ check_ok() {
     print_fail "$desc"
   fi
 }
-# Проверяем ошибку
+# Check for error
 check_error() {
   local id="$1"
   local desc="$2"
   if grep -q '"id":'$id',"error"' test_output.log; then
-    print_ok "$desc (ошибка ожидаема)"
+    print_ok "$desc (error expected)"
   else
-    print_fail "$desc (ожидалась ошибка)"
+    print_fail "$desc (error expected)"
   fi
 }
 
@@ -105,4 +105,4 @@ check_error 11 "read_file (no_such_file.txt)"
 cd ..
 rm -rf "$TESTDIR"
 
-print_step "Тестирование завершено."
+print_step "Testing completed."
